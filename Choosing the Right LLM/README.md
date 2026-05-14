@@ -12,7 +12,7 @@ This registry serves as a comprehensive guide for evaluating and choosing the ri
 | Evaluate coding or finance agents | [Scale Labs](https://labs.scale.com/leaderboard) |
 | Forecast AI future capabilities | [METR](https://metr.org/blog/2025-03-19-measuring-ai-ability-to-complete-long-tasks/) |
 | Learn fine-tuning or RAG implementation | [Choose LLM (GitHub)](https://github.com/ed-donner/choose_llm/tree/main) |
-
+| Fit LLM to check which model you can run locally | (https://www.fitllms.com/check)|
 ---
 
 ## 🏆 Leaderboards & Performance Metrics
