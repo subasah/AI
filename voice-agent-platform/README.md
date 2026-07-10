@@ -94,6 +94,16 @@ curl -s http://localhost/api/calls/<call_id>
 
 JSON file store remains only as a **local-dev fallback for company/deployment config** when MySQL is not running. Call transcripts are not meant to live in JSON.
 
+---
+
+## Continuous deployment & API tokens
+
+See **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)** for the full guide.
+
+**Tokens (Twilio, Gemini, Daily, etc.):** live only in `/opt/aethervoice/voice-agent-platform/.env.docker` on the VPS. Never committed. Docker Compose injects them into the backend container.
+
+**CD:** GitHub Actions workflow `.github/workflows/deploy-aethervoice-vps.yml` SSHs to your VPS on push to `main`, pulls code, and runs `scripts/deploy.sh`. One-time: bootstrap the VPS, create `.env.docker`, add `VPS_HOST` / `VPS_USER` / `VPS_SSH_KEY` as GitHub Actions secrets.
+
 ### Local development (without Docker)
 
 #### 1. API tokens (later)

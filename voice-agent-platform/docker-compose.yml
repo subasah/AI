@@ -57,6 +57,15 @@ services:
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost,http://127.0.0.1}
       PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost}
       ADMIN_ACCESS_TOKEN: ${ADMIN_ACCESS_TOKEN:-dev-admin-token}
+      # Voice / telephony tokens — sourced from .env.docker on the VPS (never from git)
+      GOOGLE_API_KEY: ${GOOGLE_API_KEY:-}
+      TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID:-}
+      TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN:-}
+      TWILIO_PHONE_NUMBER: ${TWILIO_PHONE_NUMBER:-}
+      DAILY_API_KEY: ${DAILY_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      DEEPGRAM_API_KEY: ${DEEPGRAM_API_KEY:-}
+      CARTESIA_API_KEY: ${CARTESIA_API_KEY:-}
     depends_on:
       mysql:
         condition: service_healthy
