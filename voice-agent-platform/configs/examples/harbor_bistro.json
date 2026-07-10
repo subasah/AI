@@ -6,6 +6,12 @@
   "direction": "both",
   "status": "active",
   "voice": {
+    "pipeline_mode": "gemini_live",
+    "gemini_model": "models/gemini-2.5-flash-native-audio-preview-12-2025",
+    "gemini_voice": "Puck",
+    "gemini_api_key_ref": "GOOGLE_API_KEY",
+    "gemini_language": "en-US",
+    "gemini_use_local_vad": false,
     "stt_provider": "deepgram",
     "tts_provider": "cartesia",
     "llm_provider": "openai",

@@ -117,15 +117,28 @@ Tool execution order (seamless failover while keys are pending):
 
 ---
 
-## Live voice (optional)
+## Live voice
 
-When keys are ready, install:
+### Default: Gemini Live Flash (speech → speech)
+
+Caller audio goes straight into Gemini; Gemini returns audio. **No Deepgram or Cartesia.**
 
 ```bash
-pip install "pipecat-ai[daily,deepgram,cartesia,openai,silero]" twilio mcp
+pip install "pipecat-ai[google,daily,silero]"
+# set GOOGLE_API_KEY in .env
 ```
 
-`VoiceBotSession.build_pipecat_pipeline()` assembles STT → LLM → TTS. Until then, sessions run in **mock mode** and still exercise tools/MCP config.
+Per deployment: `voice.pipeline_mode = "gemini_live"` (default), pick `gemini_voice` / `gemini_model` in the admin UI.
+
+### Optional: classic cascade
+
+`voice.pipeline_mode = "classic"` → Deepgram STT → OpenAI LLM → Cartesia TTS.
+
+```bash
+pip install "pipecat-ai[daily,deepgram,cartesia,openai,silero]"
+```
+
+Until keys are set, sessions run in **mock mode** and still exercise tools/MCP config.
 
 ---
 

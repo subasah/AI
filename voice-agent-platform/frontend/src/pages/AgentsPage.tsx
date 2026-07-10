@@ -34,7 +34,9 @@ export default function AgentsPage() {
               <div>
                 <h2 style={{ margin: 0, fontSize: '1.2rem' }}>{d.name}</h2>
                 <p className="muted" style={{ margin: '0.35rem 0 0' }}>
-                  {d.industry.replace('_', ' ')} · {d.direction} · v{d.version}
+                  {d.industry.replace('_', ' ')} · {d.direction} ·{' '}
+                  {d.voice?.pipeline_mode === 'classic' ? 'classic STT/TTS' : 'Gemini Live'} · v
+                  {d.version}
                 </p>
                 <div className="chip-row" style={{ marginTop: '0.75rem' }}>
                   <span className="chip">{d.agents.length} agents</span>

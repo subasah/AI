@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { api, type Deployment } from '../api'
+import { api, type Deployment, type PipelineMode } from '../api'
 
 export default function AgentDetailPage() {
   const { id } = useParams()
@@ -12,6 +12,11 @@ export default function AgentDetailPage() {
   const [toolDesc, setToolDesc] = useState('')
   const [toolUrl, setToolUrl] = useState('')
   const [preamble, setPreamble] = useState('')
+  const [pipelineMode, setPipelineMode] = useState<PipelineMode>('gemini_live')
+  const [geminiVoice, setGeminiVoice] = useState('Puck')
+  const [geminiModel, setGeminiModel] = useState(
+    'models/gemini-2.5-flash-native-audio-preview-12-2025',
+  )
   const [message, setMessage] = useState('')
 
   async function refresh() {
@@ -19,6 +24,9 @@ export default function AgentDetailPage() {
     const d = await api.getDeployment(id)
     setDep(d)
     setPreamble(d.global_system_preamble || '')
+    setPipelineMode(d.voice?.pipeline_mode || 'gemini_live')
+    setGeminiVoice(d.voice?.gemini_voice || 'Puck')
+    setGeminiModel(d.voice?.gemini_model || 'models/gemini-2.5-flash-native-audio-preview-12-2025')
   }
 
   useEffect(() => {
@@ -38,6 +46,26 @@ export default function AgentDetailPage() {
     const d = await api.patchDeployment(id, { global_system_preamble: preamble })
     setDep(d)
     setMessage('Prompts updated.')
+  }
+
+  async function saveVoice(e: FormEvent) {
+    e.preventDefault()
+    if (!id || !dep) return
+    const d = await api.patchDeployment(id, {
+      voice: {
+        ...dep.voice,
+        pipeline_mode: pipelineMode,
+        gemini_voice: geminiVoice,
+        gemini_model: geminiModel,
+        gemini_api_key_ref: 'GOOGLE_API_KEY',
+      },
+    })
+    setDep(d)
+    setMessage(
+      pipelineMode === 'gemini_live'
+        ? 'Voice pipeline set to Gemini Live Flash (speech → speech). Only GOOGLE_API_KEY needed.'
+        : 'Voice pipeline set to classic STT → LLM → TTS (Deepgram + OpenAI + Cartesia).',
+    )
   }
 
   async function attachMcp(e: FormEvent) {
@@ -158,7 +186,54 @@ export default function AgentDetailPage() {
         </div>
       </div>
 
-      <div className="grid grid-2">
+      <div className="grid grid-2" style={{ marginBottom: '1rem' }}>
+        <form className="panel" onSubmit={saveVoice}>
+          <h2 style={{ marginTop: 0, fontSize: '1.1rem' }}>Voice pipeline</h2>
+          <p className="muted" style={{ marginTop: 0, fontSize: '0.85rem' }}>
+            Gemini Live Flash takes caller audio and returns audio directly — no Deepgram or Cartesia.
+          </p>
+          <div className="field">
+            <label>Mode</label>
+            <select
+              value={pipelineMode}
+              onChange={(e) => setPipelineMode(e.target.value as PipelineMode)}
+            >
+              <option value="gemini_live">Gemini Live Flash (speech → speech)</option>
+              <option value="classic">Classic (Deepgram STT → LLM → Cartesia TTS)</option>
+            </select>
+          </div>
+          {pipelineMode === 'gemini_live' && (
+            <>
+              <div className="field">
+                <label>Gemini voice</label>
+                <select value={geminiVoice} onChange={(e) => setGeminiVoice(e.target.value)}>
+                  {['Puck', 'Charon', 'Kore', 'Fenrir', 'Aoede'].map((v) => (
+                    <option key={v} value={v}>
+                      {v}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="field">
+                <label>Model</label>
+                <input value={geminiModel} onChange={(e) => setGeminiModel(e.target.value)} />
+              </div>
+              <p className="muted" style={{ fontSize: '0.8rem' }}>
+                Secret: <code>GOOGLE_API_KEY</code> in <code>.env</code>
+              </p>
+            </>
+          )}
+          {pipelineMode === 'classic' && (
+            <p className="muted" style={{ fontSize: '0.8rem' }}>
+              Secrets: <code>DEEPGRAM_API_KEY</code>, <code>OPENAI_API_KEY</code>,{' '}
+              <code>CARTESIA_API_KEY</code>
+            </p>
+          )}
+          <button className="btn btn-primary" type="submit">
+            Save voice pipeline
+          </button>
+        </form>
+
         <form className="panel" onSubmit={savePreamble}>
           <h2 style={{ marginTop: 0, fontSize: '1.1rem' }}>Global prompt (you own this)</h2>
           <div className="field">
@@ -169,42 +244,42 @@ export default function AgentDetailPage() {
             Save prompts
           </button>
         </form>
+      </div>
 
-        <div className="grid" style={{ gap: '1rem' }}>
-          <form className="panel" onSubmit={attachMcp}>
-            <h2 style={{ marginTop: 0, fontSize: '1.1rem' }}>Attach MCP</h2>
-            <div className="field">
-              <label>Server id</label>
-              <input value={mcpId} onChange={(e) => setMcpId(e.target.value)} required />
-            </div>
-            <div className="field">
-              <label>SSE URL</label>
-              <input value={mcpUrl} onChange={(e) => setMcpUrl(e.target.value)} required />
-            </div>
-            <button className="btn btn-ghost" type="submit">
-              Attach MCP server
-            </button>
-          </form>
+      <div className="grid grid-2">
+        <form className="panel" onSubmit={attachMcp}>
+          <h2 style={{ marginTop: 0, fontSize: '1.1rem' }}>Attach MCP</h2>
+          <div className="field">
+            <label>Server id</label>
+            <input value={mcpId} onChange={(e) => setMcpId(e.target.value)} required />
+          </div>
+          <div className="field">
+            <label>SSE URL</label>
+            <input value={mcpUrl} onChange={(e) => setMcpUrl(e.target.value)} required />
+          </div>
+          <button className="btn btn-ghost" type="submit">
+            Attach MCP server
+          </button>
+        </form>
 
-          <form className="panel" onSubmit={attachTool}>
-            <h2 style={{ marginTop: 0, fontSize: '1.1rem' }}>Attach another service (tool)</h2>
-            <div className="field">
-              <label>Tool name</label>
-              <input value={toolName} onChange={(e) => setToolName(e.target.value)} required placeholder="get_loyalty_points" />
-            </div>
-            <div className="field">
-              <label>Description (LLM reads this)</label>
-              <input value={toolDesc} onChange={(e) => setToolDesc(e.target.value)} required />
-            </div>
-            <div className="field">
-              <label>Customer endpoint URL (optional until live)</label>
-              <input value={toolUrl} onChange={(e) => setToolUrl(e.target.value)} placeholder="https://api.customer.com/loyalty" />
-            </div>
-            <button className="btn btn-ghost" type="submit">
-              Attach tool
-            </button>
-          </form>
-        </div>
+        <form className="panel" onSubmit={attachTool}>
+          <h2 style={{ marginTop: 0, fontSize: '1.1rem' }}>Attach another service (tool)</h2>
+          <div className="field">
+            <label>Tool name</label>
+            <input value={toolName} onChange={(e) => setToolName(e.target.value)} required placeholder="get_loyalty_points" />
+          </div>
+          <div className="field">
+            <label>Description (LLM reads this)</label>
+            <input value={toolDesc} onChange={(e) => setToolDesc(e.target.value)} required />
+          </div>
+          <div className="field">
+            <label>Customer endpoint URL (optional until live)</label>
+            <input value={toolUrl} onChange={(e) => setToolUrl(e.target.value)} placeholder="https://api.customer.com/loyalty" />
+          </div>
+          <button className="btn btn-ghost" type="submit">
+            Attach tool
+          </button>
+        </form>
       </div>
     </div>
   )

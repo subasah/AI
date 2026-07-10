@@ -115,21 +115,50 @@ class MCPServerConfig(BaseModel):
     include_tools: list[str] = Field(default_factory=list)
 
 
+class PipelineMode(str, Enum):
+    """How audio is processed end-to-end.
+
+    - gemini_live: speech → Gemini Live Flash → speech (no separate STT/TTS)
+    - classic: Deepgram STT → LLM → Cartesia/ElevenLabs TTS
+    """
+
+    GEMINI_LIVE = "gemini_live"
+    CLASSIC = "classic"
+
+
 class VoiceProviderConfig(BaseModel):
+    # Default: multimodal Gemini Live (voice in → voice out)
+    pipeline_mode: PipelineMode = PipelineMode.GEMINI_LIVE
+
+    # --- Gemini Live (speech-to-speech) ---
+    # e.g. models/gemini-2.5-flash-native-audio-preview-12-2025
+    gemini_model: str = "models/gemini-2.5-flash-native-audio-preview-12-2025"
+    gemini_voice: str = "Puck"  # Puck | Charon | Kore | Fenrir | Aoede | ...
+    gemini_api_key_ref: str = "GOOGLE_API_KEY"
+    gemini_language: str = "en-US"
+    # Server-side VAD is built into Gemini Live; set True to use local Silero instead
+    gemini_use_local_vad: bool = False
+
+    # --- Classic cascade (only used when pipeline_mode=classic) ---
     stt_provider: str = "deepgram"
     tts_provider: str = "cartesia"
     llm_provider: str = "openai"
     llm_model: str = "gpt-4o-mini"
     tts_voice_id: str | None = None
-    # Secret refs — fill real keys in .env later
     stt_api_key_ref: str = "DEEPGRAM_API_KEY"
     tts_api_key_ref: str = "CARTESIA_API_KEY"
     llm_api_key_ref: str = "OPENAI_API_KEY"
+
     transport: str = "daily"  # daily | twilio | webrtc
     daily_api_key_ref: str = "DAILY_API_KEY"
     twilio_account_sid_ref: str = "TWILIO_ACCOUNT_SID"
     twilio_auth_token_ref: str = "TWILIO_AUTH_TOKEN"
     twilio_phone_number_ref: str = "TWILIO_PHONE_NUMBER"
+
+    def required_secret_refs(self) -> list[str]:
+        if self.pipeline_mode == PipelineMode.GEMINI_LIVE:
+            return [self.gemini_api_key_ref]
+        return [self.stt_api_key_ref, self.tts_api_key_ref, self.llm_api_key_ref]
 
 
 class CompanyConfig(BaseModel):

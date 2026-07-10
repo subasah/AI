@@ -39,6 +39,22 @@ export interface AgentConfig {
   handoff_targets: string[]
 }
 
+export type PipelineMode = 'gemini_live' | 'classic'
+
+export interface VoiceProviderConfig {
+  pipeline_mode: PipelineMode
+  gemini_model?: string
+  gemini_voice?: string
+  gemini_api_key_ref?: string
+  gemini_language?: string
+  gemini_use_local_vad?: boolean
+  stt_provider?: string
+  tts_provider?: string
+  llm_provider?: string
+  llm_model?: string
+  tts_voice_id?: string | null
+}
+
 export interface Deployment {
   id: string
   name: string
@@ -46,6 +62,7 @@ export interface Deployment {
   industry: Industry
   direction: 'inbound' | 'outbound' | 'both'
   status: string
+  voice: VoiceProviderConfig
   agents: AgentConfig[]
   tools: ToolConfig[]
   skills: { id: string; name: string }[]

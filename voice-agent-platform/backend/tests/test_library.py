@@ -24,6 +24,21 @@ def test_restaurant_template_has_entry_and_tools():
     assert len(dep.agents) >= 3
 
 
+def test_default_pipeline_is_gemini_live():
+    from library.config.models import PipelineMode, VoiceProviderConfig
+
+    voice = VoiceProviderConfig()
+    assert voice.pipeline_mode == PipelineMode.GEMINI_LIVE
+    assert voice.required_secret_refs() == ["GOOGLE_API_KEY"]
+
+    classic = VoiceProviderConfig(pipeline_mode=PipelineMode.CLASSIC)
+    assert set(classic.required_secret_refs()) == {
+        "DEEPGRAM_API_KEY",
+        "CARTESIA_API_KEY",
+        "OPENAI_API_KEY",
+    }
+
+
 def test_mortgage_payment_flow_transitions():
     dep = mortgage_servicing_template("co_m", "Servicer")
     flow = next(f for f in dep.flows if f.id == "payment_flow")
