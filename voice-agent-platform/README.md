@@ -34,6 +34,13 @@ Python package folders use underscores (`incoming_call_handler`) so imports work
 
 ---
 
+## Quick start
+
+**New to the project? Start here for Mac local setup:**  
+→ **[docs/LOCAL_SETUP.md](docs/LOCAL_SETUP.md)** (Docker recommended, or native Python + Node)
+
+---
+
 ## Production stack with Docker Compose
 
 Orchestrates **Nginx** (serves React + proxies `/api` and `/voice`), **FastAPI**, and **MySQL** (persistent volume) on an internal Docker network.
