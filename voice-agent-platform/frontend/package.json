@@ -6,8 +6,10 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:pages": "VITE_BASE_PATH=/AI/ tsc -b && VITE_BASE_PATH=/AI/ vite build && cp dist/index.html dist/404.html",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "deploy:pages": "npm run build:pages && npx --yes gh-pages@6 -d dist -r https://github.com/subasah/AI.git -b gh-pages -m \"Deploy AetherVoice admin\""
   },
   "dependencies": {
     "framer-motion": "^12.42.2",

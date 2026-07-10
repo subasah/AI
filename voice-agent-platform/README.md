@@ -60,7 +60,7 @@ export PYTHONPATH=$PWD
 uvicorn backend.app.main:app --host 0.0.0.0 --port 8080 --reload
 ```
 
-### 3. Frontend
+### 3. Frontend (local)
 
 ```bash
 cd voice-agent-platform/frontend
@@ -69,6 +69,19 @@ npm run dev
 ```
 
 Open http://localhost:5173 — access token default: `dev-admin-token` (see `ADMIN_ACCESS_TOKEN`).
+
+### 4. Frontend on GitHub Pages
+
+The admin UI is built for project Pages at **https://subasah.github.io/AI/**.
+
+```bash
+cd voice-agent-platform/frontend
+npm run build:pages          # outputs dist/ with base /AI/
+# CI: .github/workflows/deploy-aethervoice-pages.yml deploys on push
+# Or one-shot: npm run deploy:pages
+```
+
+Static hosting only serves the UI. Point `VITE_API_BASE` (repo Actions variable) at your FastAPI host when the backend is online; until then the UI loads and shows an API-unreachable notice.
 
 ---
 

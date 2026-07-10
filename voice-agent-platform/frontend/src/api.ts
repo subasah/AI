@@ -83,7 +83,7 @@ export interface TemplateInfo {
   description: string
 }
 
-const API = import.meta.env.VITE_API_BASE || ''
+const API = (import.meta.env.VITE_API_BASE as string | undefined)?.replace(/\/$/, '') || ''
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API}${path}`, {
