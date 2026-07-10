@@ -18,16 +18,27 @@ if str(ROOT) not in sys.path:
 
 load_dotenv(ROOT / ".env")
 
-from backend.app.api import companies, deployments, health, templates  # noqa: E402
+from backend.app.api import calls, companies, deployments, health, templates  # noqa: E402
 from incoming_call_handler import handler as incoming  # noqa: E402
 from outgoing_call_handler import handler as outgoing  # noqa: E402
 
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
+    from backend.app.db.call_repository import get_call_repository
     from backend.app.db.store import store
     from library.config.loader import load_deployment
     from library.config.models import CompanyConfig
+
+    # Eagerly init call I/O MySQL repo when configured (Docker sets STORE_BACKEND=mysql)
+    repo = get_call_repository()
+    if repo is None:
+        logger.warning(
+            "Call transcript/tool I/O will NOT persist to MySQL. "
+            "Use docker compose (STORE_BACKEND=mysql) for production debugging."
+        )
+    else:
+        logger.info("Call transcript/tool I/O persistence is active")
 
     examples = ROOT / "configs" / "examples"
     n = incoming.load_deployments_from_dir(examples)
@@ -86,6 +97,7 @@ app.include_router(health.router, prefix="/api")
 app.include_router(companies.router, prefix="/api")
 app.include_router(deployments.router, prefix="/api")
 app.include_router(templates.router, prefix="/api")
+app.include_router(calls.router, prefix="/api")
 app.include_router(incoming.router)
 app.include_router(outgoing.router)
 

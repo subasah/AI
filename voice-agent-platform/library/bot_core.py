@@ -32,9 +32,29 @@ def resolve_secret(ref: str | None) -> str | None:
 class VoiceBotSession:
     """Runtime session for one phone/WebRTC call."""
 
-    def __init__(self, deployment: VoiceAgentDeployment, call_id: str | None = None) -> None:
+    def __init__(
+        self,
+        deployment: VoiceAgentDeployment,
+        call_id: str | None = None,
+        *,
+        direction: str = "inbound",
+        from_number: str | None = None,
+        to_number: str | None = None,
+        metadata: dict[str, Any] | None = None,
+    ) -> None:
         self.deployment = deployment
-        self.logger = CallLogger(call_id=call_id, company_id=deployment.company_id)
+        self.direction = direction
+        self.from_number = from_number
+        self.to_number = to_number
+        self.metadata = metadata or {}
+        self._call_repo = self._resolve_call_repo()
+        self.logger = CallLogger(
+            call_id=call_id,
+            company_id=deployment.company_id,
+            deployment_id=deployment.id,
+            repository=self._call_repo,
+            agent_id_provider=lambda: self.swarm.active_agent_id if hasattr(self, "swarm") else None,
+        )
         self.mcp = MCPClientManager(deployment.mcp_servers)
         self.dispatcher = ToolDispatcher(
             deployment.tools,
@@ -45,6 +65,16 @@ class VoiceBotSession:
         self.agents = build_agents(deployment)
         self.swarm = SwarmOrchestrator(deployment, self.agents, call_logger=self.logger)
         self._register_handoff_handlers()
+
+    @staticmethod
+    def _resolve_call_repo() -> Any | None:
+        try:
+            from backend.app.db.call_repository import get_call_repository
+
+            return get_call_repository()
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("Call repository unavailable: {}", exc)
+            return None
 
     def _register_handoff_handlers(self) -> None:
         for agent in self.agents.values():
@@ -63,30 +93,57 @@ class VoiceBotSession:
     async def start(self) -> dict[str, Any]:
         await self.mcp.connect_all()
         voice = self.deployment.voice
+        if self._call_repo is not None:
+            self._call_repo.start_call(
+                call_id=self.logger.call_id,
+                company_id=self.deployment.company_id,
+                deployment_id=self.deployment.id,
+                direction=self.direction,
+                pipeline_mode=voice.pipeline_mode.value,
+                entry_agent_id=self.swarm.active_agent_id,
+                from_number=self.from_number,
+                to_number=self.to_number,
+                metadata=self.metadata,
+            )
         self.logger.log(
             "session_start",
             deployment_id=self.deployment.id,
             entry_agent=self.swarm.active_agent_id,
             pipeline_mode=voice.pipeline_mode.value,
         )
+        entry = self.swarm.entry_message()
+        if entry:
+            self.logger.turn("assistant", entry, agent_id=self.swarm.active_agent_id)
         return {
             "call_id": self.logger.call_id,
             "system_prompt": self.swarm.system_prompt(),
             "tools": self.swarm.tools(),
-            "entry_message": self.swarm.entry_message(),
+            "entry_message": entry,
             "voice": voice.model_dump(),
             "pipeline_mode": voice.pipeline_mode.value,
             "missing_secrets": self.missing_secrets(),
+            "call_persistence": "mysql" if self._call_repo is not None else "logs_only",
         }
+
+    async def record_user_input(self, text: str) -> None:
+        """Persist caller utterance for debugging."""
+        self.logger.turn("user", text)
+
+    async def record_agent_output(self, text: str) -> None:
+        """Persist agent spoken/text output for debugging."""
+        self.logger.turn("assistant", text, agent_id=self.swarm.active_agent_id)
 
     async def handle_tool_call(self, name: str, arguments: dict[str, Any]) -> dict[str, Any]:
         result = await self.dispatcher.handle(name, arguments)
         # Refresh prompt/tools after possible handoff
         if name.startswith("transfer_to_") and result.get("ok"):
+            entry = self.swarm.entry_message()
+            if entry:
+                self.logger.turn("assistant", entry, agent_id=self.swarm.active_agent_id)
             result["session"] = {
                 "system_prompt": self.swarm.system_prompt(),
                 "tools": self.swarm.tools(),
-                "entry_message": self.swarm.entry_message(),
+                "entry_message": entry,
             }
         return result
 
@@ -272,3 +329,8 @@ class VoiceBotSession:
     async def close(self) -> None:
         await self.mcp.close()
         self.logger.log("session_end")
+        if self._call_repo is not None:
+            try:
+                self._call_repo.end_call(self.logger.call_id, status="ended")
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("Failed to mark call ended: {}", exc)

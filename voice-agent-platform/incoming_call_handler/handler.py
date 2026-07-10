@@ -68,7 +68,13 @@ async def incoming_call(request: Request) -> Response:
     deployment_id = request.query_params.get("deployment_id")
 
     deployment = resolve_deployment(str(called) if called else None, deployment_id)
-    session = VoiceBotSession(deployment)
+    session = VoiceBotSession(
+        deployment,
+        direction="inbound",
+        from_number=str(caller) if caller else None,
+        to_number=str(called) if called else None,
+        metadata={"provider": "twilio"},
+    )
     bootstrap = await session.start()
     _SESSIONS[session.logger.call_id] = session
 
@@ -98,7 +104,14 @@ async def incoming_call(request: Request) -> Response:
 async def incoming_web(payload: dict[str, Any]) -> dict[str, Any]:
     """Browser / WebRTC inbound session bootstrap (no Twilio)."""
     deployment = resolve_deployment(payload.get("phone_number"), payload.get("deployment_id"))
-    session = VoiceBotSession(deployment, call_id=payload.get("call_id"))
+    session = VoiceBotSession(
+        deployment,
+        call_id=payload.get("call_id"),
+        direction="inbound",
+        from_number=payload.get("from_number"),
+        to_number=payload.get("phone_number"),
+        metadata={"provider": "web", **(payload.get("metadata") or {})},
+    )
     bootstrap = await session.start()
     _SESSIONS[session.logger.call_id] = session
     missing = session.missing_secrets()
@@ -109,6 +122,23 @@ async def incoming_web(payload: dict[str, Any]) -> dict[str, Any]:
         "missing_secrets": missing,
         "mode": "mock" if missing else "live",
     }
+
+
+@router.post("/session/{call_id}/turns")
+async def record_turn(call_id: str, payload: dict[str, Any]) -> dict[str, str]:
+    """Record a user or assistant utterance for MySQL debugging."""
+    session = _SESSIONS.get(call_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Unknown call session")
+    role = (payload.get("role") or "user").lower()
+    text = payload.get("text") or payload.get("content") or ""
+    if not text:
+        raise HTTPException(status_code=400, detail="text is required")
+    if role == "user":
+        await session.record_user_input(text)
+    else:
+        await session.record_agent_output(text)
+    return {"status": "recorded", "call_id": call_id, "role": role}
 
 
 @router.post("/session/{call_id}/tools/{tool_name}")

@@ -1,10 +1,11 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
-import { Building2, LayoutDashboard, PhoneCall, Sparkles, LogOut } from 'lucide-react'
+import { Building2, LayoutDashboard, PhoneCall, Sparkles, LogOut, ScrollText } from 'lucide-react'
 
 const links = [
   { to: '/', label: 'Overview', icon: LayoutDashboard },
   { to: '/companies', label: 'Companies', icon: Building2 },
   { to: '/agents', label: 'Voice Agents', icon: PhoneCall },
+  { to: '/calls', label: 'Call debug', icon: ScrollText },
   { to: '/create', label: 'Create & Sell', icon: Sparkles },
 ]
 

@@ -62,7 +62,9 @@ class ToolDispatcher:
             # Level 1 — local handler
             if name in self._handlers:
                 result = await self._handlers[name](arguments)
-                self._logger.tool_succeeded(name, latency_ms=self._ms(started))
+                self._logger.tool_succeeded(
+                    name, latency_ms=self._ms(started), result=result, arguments=arguments
+                )
                 return {"ok": True, "tool": name, "result": result}
 
             tool = self._tools[name]
@@ -70,18 +72,27 @@ class ToolDispatcher:
             # Level 2 — MCP
             if tool.mcp_binding and self._mcp_client is not None:
                 result = await self._call_mcp(tool, arguments)
-                self._logger.tool_succeeded(name, latency_ms=self._ms(started))
+                self._logger.tool_succeeded(
+                    name, latency_ms=self._ms(started), result=result, arguments=arguments
+                )
                 return {"ok": True, "tool": name, "result": result}
 
             # Level 3 — HTTP customer service
             if tool.endpoint_url:
                 result = await self._call_http(tool, arguments)
-                self._logger.tool_succeeded(name, latency_ms=self._ms(started))
+                self._logger.tool_succeeded(
+                    name, latency_ms=self._ms(started), result=result, arguments=arguments
+                )
                 return {"ok": True, "tool": name, "result": result}
 
             # Level 4 — mock (safe default while API tokens are pending)
             if tool.mock_response is not None:
-                self._logger.log("tool_mock", tool=name)
+                self._logger.tool_succeeded(
+                    name,
+                    latency_ms=self._ms(started),
+                    result={**tool.mock_response, "mocked": True},
+                    arguments=arguments,
+                )
                 return {"ok": True, "tool": name, "result": tool.mock_response, "mocked": True}
 
             return self._error(

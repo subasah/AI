@@ -63,3 +63,39 @@ async def test_session_tool_mock_and_handoff():
     assert inv["ok"] is True
     assert inv.get("mocked") is True
     await session.close()
+
+
+def test_call_logger_persists_to_repository():
+    from library.observability.call_logger import CallLogger
+
+    class FakeRepo:
+        def __init__(self):
+            self.turns = []
+            self.tools = []
+            self.events = []
+
+        def add_turn(self, **kwargs):
+            self.turns.append(kwargs)
+            return len(self.turns)
+
+        def add_tool_io(self, **kwargs):
+            self.tools.append(kwargs)
+            return len(self.tools)
+
+        def add_event(self, **kwargs):
+            self.events.append(kwargs)
+            return len(self.events)
+
+    repo = FakeRepo()
+    log = CallLogger(call_id="c1", company_id="co", repository=repo)
+    log.turn("user", "I want a table for two")
+    log.tool_called("check_availability", arguments={"party_size": 2})
+    log.tool_succeeded("check_availability", latency_ms=12.5, result={"available": True})
+    log.log("handoff", from_agent="greeter", to="reservations")
+
+    assert len(repo.turns) == 1
+    assert repo.turns[0]["content"] == "I want a table for two"
+    assert len(repo.tools) == 1
+    assert repo.tools[0]["ok"] is True
+    assert repo.tools[0]["arguments"]["party_size"] == 2
+    assert any(e["event_type"] == "handoff" for e in repo.events)

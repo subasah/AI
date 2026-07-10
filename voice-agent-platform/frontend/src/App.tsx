@@ -7,6 +7,8 @@ import AgentsPage from './pages/AgentsPage'
 import CreateAgentPage from './pages/CreateAgentPage'
 import AgentDetailPage from './pages/AgentDetailPage'
 
+import CallsPage from './pages/CallsPage'
+
 function RequireAuth() {
   const ok = localStorage.getItem('ava_access')
   if (!ok) return <Navigate to="/login" replace />
@@ -23,6 +25,8 @@ export default function App() {
           <Route path="/companies" element={<CompaniesPage />} />
           <Route path="/agents" element={<AgentsPage />} />
           <Route path="/agents/:id" element={<AgentDetailPage />} />
+          <Route path="/calls" element={<CallsPage />} />
+          <Route path="/calls/:id" element={<CallsPage />} />
           <Route path="/create" element={<CreateAgentPage />} />
         </Route>
       </Route>

@@ -44,3 +44,14 @@ curl -s http://localhost/api/health
 ```
 
 Open http://localhost and sign in with `ADMIN_ACCESS_TOKEN`.
+
+## Call debugging (MySQL)
+
+Transcripts and tool I/O are stored in MySQL (`calls`, `call_turns`, `call_tool_io`, `call_events`).
+
+```bash
+curl -s http://localhost/api/calls | jq .
+curl -s http://localhost/api/calls/<call_id> | jq .
+```
+
+Or open **Call debug** in the admin UI.

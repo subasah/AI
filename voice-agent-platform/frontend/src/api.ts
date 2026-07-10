@@ -130,4 +130,43 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ industry, company_name, company_id: 'preview' }),
     }),
+  listCalls: (params?: { company_id?: string; deployment_id?: string; limit?: number }) => {
+    const q = new URLSearchParams()
+    if (params?.company_id) q.set('company_id', params.company_id)
+    if (params?.deployment_id) q.set('deployment_id', params.deployment_id)
+    if (params?.limit) q.set('limit', String(params.limit))
+    const qs = q.toString()
+    return request<CallSummary[]>(`/api/calls${qs ? `?${qs}` : ''}`)
+  },
+  getCall: (id: string) => request<CallDetail>(`/api/calls/${id}`),
+}
+
+export interface CallSummary {
+  id: string
+  company_id?: string | null
+  deployment_id?: string | null
+  direction: string
+  status: string
+  pipeline_mode?: string | null
+  entry_agent_id?: string | null
+  from_number?: string | null
+  to_number?: string | null
+  started_at?: string
+  ended_at?: string | null
+}
+
+export interface CallDetail {
+  call: CallSummary
+  turns: { seq: number; role: string; content: string; agent_id?: string | null; created_at?: string }[]
+  tool_io: {
+    seq: number
+    tool_name: string
+    arguments?: unknown
+    result?: unknown
+    ok: number | boolean
+    error_code?: string | null
+    latency_ms?: number | null
+    created_at?: string
+  }[]
+  events: { seq: number; event_type: string; payload?: unknown; created_at?: string }[]
 }

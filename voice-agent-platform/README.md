@@ -74,6 +74,26 @@ Nginx routes:
 - `/api/` → FastAPI  
 - `/voice/` → FastAPI (Twilio / sessions)
 
+### Call I/O in MySQL (debugging)
+
+Docker Compose sets `STORE_BACKEND=mysql`. Every call persists:
+
+| Table | What |
+|-------|------|
+| `calls` | Session metadata (direction, numbers, pipeline, status) |
+| `call_turns` | Caller input + agent output text |
+| `call_tool_io` | Tool arguments + results (success/failure, latency) |
+| `call_events` | Handoffs, session_start/end, other structured events |
+
+Inspect in the admin UI under **Call debug**, or:
+
+```bash
+curl -s http://localhost/api/calls
+curl -s http://localhost/api/calls/<call_id>
+```
+
+JSON file store remains only as a **local-dev fallback for company/deployment config** when MySQL is not running. Call transcripts are not meant to live in JSON.
+
 ### Local development (without Docker)
 
 #### 1. API tokens (later)

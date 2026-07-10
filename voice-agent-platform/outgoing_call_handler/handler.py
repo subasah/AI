@@ -87,13 +87,19 @@ def _twilio_client():
 @router.post("/outgoing", response_model=OutboundCallResponse)
 async def start_outbound(req: OutboundCallRequest) -> OutboundCallResponse:
     deployment = resolve_deployment(None, req.deployment_id)
-    session = VoiceBotSession(deployment)
+    from_number = req.from_number or os.getenv("TWILIO_PHONE_NUMBER")
+    session = VoiceBotSession(
+        deployment,
+        direction="outbound",
+        from_number=from_number,
+        to_number=req.to_number,
+        metadata={"provider": "twilio", "context": req.context},
+    )
     bootstrap = await session.start()
     _SESSIONS[session.logger.call_id] = session
 
     opening = req.opening_line or deployment.outbound_script or bootstrap.get("entry_message")
     missing = session.missing_secrets()
-    from_number = req.from_number or os.getenv("TWILIO_PHONE_NUMBER")
     public_base = os.getenv("PUBLIC_BASE_URL", "http://localhost:8080")
 
     provider_sid = None
