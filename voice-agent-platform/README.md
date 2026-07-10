@@ -18,17 +18,10 @@ Inspired by the architecture taught in [agenticvoiceagent.github.io](https://git
 
 ```text
 voice-agent-platform/
+├── docker-compose.yml        # Nginx + React + FastAPI + MySQL
+├── nginx/                    # Reverse proxy + static React build
+├── mysql/init.sql            # DB schema bootstrap
 ├── library/                  # Shared brain (reusable across all customers)
-│   ├── agents/               # BaseAgent + config-driven agents
-│   ├── tools/                # ToolDispatcher (handler → MCP → HTTP → mock)
-│   ├── skills/               # Skill configs
-│   ├── flows/                # FSM runtime
-│   ├── mcp/                  # MCP client manager (plug new services easily)
-│   ├── prompts/              # Voice-first prompt helpers
-│   ├── swarm/                # Handoff orchestrator
-│   ├── observability/        # call_id structured logging
-│   ├── industries/           # Restaurant / dealer / mortgage templates
-│   └── bot_core.py           # Session + optional Pipecat assembly
 ├── incoming_call_handler/    # Inbound Twilio / WebRTC webhooks
 ├── outgoing_call_handler/    # Outbound dial campaigns
 ├── backend/                  # FastAPI control plane (Python)
@@ -41,26 +34,67 @@ Python package folders use underscores (`incoming_call_handler`) so imports work
 
 ---
 
-## Quick start
+## Production stack with Docker Compose
 
-### 1. API tokens (later)
+Orchestrates **Nginx** (serves React + proxies `/api` and `/voice`), **FastAPI**, and **MySQL** (persistent volume) on an internal Docker network.
+
+### Build, start, and stop
+
+```bash
+cd voice-agent-platform
+cp .env.docker.example .env.docker
+# Edit MySQL passwords / ADMIN_ACCESS_TOKEN / GOOGLE_API_KEY / TWILIO_* as needed
+
+# Build images and start everything in the background
+docker compose --env-file .env.docker up -d --build
+
+# Check status
+docker compose --env-file .env.docker ps
+docker compose --env-file .env.docker logs -f
+
+# Stop (containers removed; MySQL data volume kept)
+docker compose --env-file .env.docker down
+
+# Stop and delete the MySQL volume too
+docker compose --env-file .env.docker down -v
+```
+
+Open **http://localhost** (or `http://localhost:$HTTP_PORT`).  
+Login token: value of `ADMIN_ACCESS_TOKEN` in `.env.docker` (default `dev-admin-token`).
+
+| Service | Container | Role |
+|---------|-----------|------|
+| `nginx` | `aethervoice-nginx` | Public port 80 — React static + reverse proxy |
+| `backend` | `aethervoice-backend` | FastAPI on internal `8080` |
+| `mysql` | `aethervoice-mysql` | MySQL 8 with volume `aethervoice-mysql-data` |
+
+Nginx routes:
+
+- `/` → React SPA  
+- `/api/` → FastAPI  
+- `/voice/` → FastAPI (Twilio / sessions)
+
+### Local development (without Docker)
+
+#### 1. API tokens (later)
 
 ```bash
 cp voice-agent-platform/.env.example voice-agent-platform/.env
-# Fill OPENAI_API_KEY, DEEPGRAM_API_KEY, CARTESIA_API_KEY, TWILIO_*, DAILY_API_KEY, etc.
+# Fill GOOGLE_API_KEY, TWILIO_*, DAILY_API_KEY, etc.
 ```
 
-### 2. Backend
+#### 2. Backend
 
 ```bash
 cd voice-agent-platform
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r backend/requirements.txt
 export PYTHONPATH=$PWD
+# Optional: STORE_BACKEND=mysql with local MySQL; default is JSON files
 uvicorn backend.app.main:app --host 0.0.0.0 --port 8080 --reload
 ```
 
-### 3. Frontend (local)
+#### 3. Frontend (local)
 
 ```bash
 cd voice-agent-platform/frontend
@@ -68,20 +102,19 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:5173 — access token default: `dev-admin-token` (see `ADMIN_ACCESS_TOKEN`).
+Open http://localhost:5173 — access token default: `dev-admin-token`.
 
-### 4. Frontend on GitHub Pages
+#### 4. Frontend on GitHub Pages
 
-The admin UI is built for project Pages at **https://subasah.github.io/AI/**.
+The admin UI can also be published at **https://subasah.github.io/AI/**.
 
 ```bash
 cd voice-agent-platform/frontend
-npm run build:pages          # outputs dist/ with base /AI/
-# CI: .github/workflows/deploy-aethervoice-pages.yml deploys on push
-# Or one-shot: npm run deploy:pages
+npm run build:pages
+# Or: npm run deploy:pages
 ```
 
-Static hosting only serves the UI. Point `VITE_API_BASE` (repo Actions variable) at your FastAPI host when the backend is online; until then the UI loads and shows an API-unreachable notice.
+For Pages-only hosting, set Actions variable `VITE_API_BASE` to your API URL. Docker Compose does not need that — the UI and API share the same origin via Nginx.
 
 ---
 
