@@ -1,1 +1,1 @@
-Agents Patterns 
+[Agents Patterns Course by Andrew Ng ](https://www.deeplearning.ai/courses/agentic-ai?_gl=1*m9wss6*_gcl_au*Mjc4ODExNDgyLjE3ODU0MzE0MzA.*_ga*MTEyMTQ1NjUxNy4xNzg1NDMxNDMw*_ga_FR2MZ1VLMS*czE3ODU5NTU4ODgkbzE0JGcxJHQxNzg1OTU3MTg5JGo2MCRsMCRoMA..)
