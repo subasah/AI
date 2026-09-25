@@ -1,0 +1,66 @@
+name: Deploy AetherVoice to VPS
+
+# Continuous deployment: push to main (or manual run) → SSH to VPS → git pull → docker compose up
+on:
+  push:
+    branches: [main]
+    paths:
+      - "voice-agent-platform/**"
+      - ".github/workflows/deploy-aethervoice-vps.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: aethervoice-vps-deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check required secrets
+        id: check
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+        run: |
+          if [ -z "$VPS_HOST" ] || [ -z "$VPS_SSH_KEY" ]; then
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "VPS_HOST / VPS_SSH_KEY not set — skipping deploy. See voice-agent-platform/docs/DEPLOYMENT.md"
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Deploy over SSH
+        if: steps.check.outputs.configured == 'true'
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          script_stop: true
+          script: |
+            set -euo pipefail
+            APP_DIR="${{ secrets.VPS_APP_DIR }}"
+            if [ -z "$APP_DIR" ]; then APP_DIR=/opt/aethervoice; fi
+            BRANCH="${{ secrets.VPS_BRANCH }}"
+            if [ -z "$BRANCH" ]; then BRANCH=main; fi
+
+            if [ ! -d "$APP_DIR/.git" ]; then
+              echo "Repo missing at $APP_DIR — run voice-agent-platform/scripts/bootstrap-vps.sh on the server first."
+              exit 1
+            fi
+
+            cd "$APP_DIR"
+            git fetch origin
+            git checkout "$BRANCH"
+            git reset --hard "origin/$BRANCH"
+
+            cd "$APP_DIR/voice-agent-platform"
+            if [ ! -f .env.docker ]; then
+              echo "Missing .env.docker on server. API tokens must live only on the VPS."
+              exit 1
+            fi
+
+            chmod +x scripts/deploy.sh
+            ./scripts/deploy.sh
