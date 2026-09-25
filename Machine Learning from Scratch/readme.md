@@ -1,0 +1,4 @@
+
+[Machine Learning from Scratch](https://event.on24.com/eventRegistration/console/apollox/mainEvent?&eventid=5430638&sessionid=1&username=&partnerref=&format=fhvideo1&mobile=&flashsupportedmobiledevice=&helpcenter=&key=EA9CCB2492FE7FA86241AFA33DD473A6&newConsole=true&nxChe=true&newTabCon=true&consoleEarEventConsole=true&consoleEarCloudApi=false&text_language_id=en&playerwidth=748&playerheight=526&referrer=https%3A%2F%2Fevent.on24.com%2Finterface%2Fregistration%2Fautoreg%2Findex.html%3Fsessionid%3D1%26eventid%3D5430638%26key%3DEA9CCB2492FE7FA86241AFA33DD473A6%26email%3D079185eb-6397-4d15-96bf-d8c8e8fd9fc6%2540platform%26firstname%3DSuba%26lastname%3DS%26deletecookie%3Dtrue%26event_email%3DN%26marketing_email%3DN%26std1%3D0642572422714%26std2%3D0642572422738%26std3%3D8f2de5b4-54c0-4403-8569-89fe21a82a54%26std4%3D1%26std5%3D0&eventuserid=850354803&contenttype=L&mediametricsessionid=733368114&mediametricid=7589880&usercd=850354803&mode=launch)
+
+
